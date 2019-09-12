@@ -21,13 +21,18 @@ import androidx.lifecycle.Transformations.map
 import androidx.lifecycle.Transformations.switchMap
 import androidx.lifecycle.ViewModel
 import com.android.example.paging.pagingwithnetwork.reddit.repository.RedditPostRepository
+import com.android.example.paging.pagingwithnetwork.reddit.repository.mRedditPostRepository
 
-class mSubRedditViewModel(private val repository: RedditPostRepository) : ViewModel() {
+class mSubRedditViewModel(private val repository: mRedditPostRepository) : ViewModel() {
+    val postPageList=repository.postPageList
+    val refreshState=repository.refreshState
+    val loadingState=repository.loadingState
 
     fun refresh() {
     }
 
     fun showSubreddit(subreddit: String): Boolean {
+        repository.postsOfSubreddit(subreddit,30)
     }
 
     fun retry() {

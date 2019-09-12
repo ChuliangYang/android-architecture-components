@@ -16,6 +16,8 @@
 
 package com.android.example.paging.pagingwithnetwork.reddit.repository
 
+import androidx.lifecycle.LiveData
+import androidx.paging.PagedList
 import com.android.example.paging.pagingwithnetwork.reddit.vo.RedditPost
 
 /**
@@ -25,6 +27,19 @@ import com.android.example.paging.pagingwithnetwork.reddit.vo.RedditPost
  */
 interface RedditPostRepository {
     fun postsOfSubreddit(subReddit: String, pageSize: Int): Listing<RedditPost>
+
+    enum class Type {
+        IN_MEMORY_BY_ITEM,
+        IN_MEMORY_BY_PAGE,
+        DB
+    }
+}
+
+interface mRedditPostRepository {
+    var loadingState:LiveData<NetworkState>
+    var refreshState:LiveData<NetworkState>
+    var postPageList:LiveData<PagedList<RedditPost>>
+    fun postsOfSubreddit(subReddit: String, pageSize: Int)
 
     enum class Type {
         IN_MEMORY_BY_ITEM,

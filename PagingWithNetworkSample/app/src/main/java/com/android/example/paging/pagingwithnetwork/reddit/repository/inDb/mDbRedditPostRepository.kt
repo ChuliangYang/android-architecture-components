@@ -23,6 +23,7 @@ import androidx.paging.PagedList
 import com.android.example.paging.pagingwithnetwork.reddit.api.RedditApi
 import com.android.example.paging.pagingwithnetwork.reddit.db.RedditDb
 import com.android.example.paging.pagingwithnetwork.reddit.repository.NetworkState
+import com.android.example.paging.pagingwithnetwork.reddit.repository.mRedditPostRepository
 import com.android.example.paging.pagingwithnetwork.reddit.vo.RedditPost
 import retrofit2.Call
 import retrofit2.Callback
@@ -36,16 +37,25 @@ import java.util.concurrent.Executors
 class mDbRedditPostRepository(
         val db: RedditDb,
         private val redditApi: RedditApi,
-        private val networkPageSize: Int = DEFAULT_NETWORK_PAGE_SIZE)  {
+        private val networkPageSize: Int = DEFAULT_NETWORK_PAGE_SIZE) : mRedditPostRepository {
     companion object {
         private const val DEFAULT_NETWORK_PAGE_SIZE = 10
     }
     private val refreshStateLiveData=MutableLiveData<MutableLiveData<NetworkState>>()
-    var loadingState=Transformations.switchMap(refreshStateLiveData){
-         it
-    } as MediatorLiveData
+    private val postPageListLiveData=MutableLiveData<LiveData<PagedList<RedditPost>>>()
+    private val refreshStateMutable=MutableLiveData<NetworkState>()
 
-    var refreshState=MutableLiveData<NetworkState>()
+    override var loadingState=Transformations.switchMap(refreshStateLiveData){
+         it
+    }
+
+    override var postPageList=Transformations.switchMap(postPageListLiveData){
+        it
+    }
+
+    override var refreshState=Transformations.map(refreshStateMutable){
+        it
+    }
 
     /**
      * When refresh is called, we simply run a fresh network request and when it arrives, clear
@@ -56,10 +66,10 @@ class mDbRedditPostRepository(
      */
     @MainThread
     private fun refresh(subredditName: String){
-        refreshState.value=NetworkState.LOADING
+        refreshStateMutable.value=NetworkState.LOADING
         redditApi.getTop(subredditName,networkPageSize).enqueue(object : Callback<RedditApi.ListingResponse?> {
             override fun onFailure(call: Call<RedditApi.ListingResponse?>, t: Throwable) {
-                refreshState.value=NetworkState.error(t.message)
+                refreshStateMutable.value=NetworkState.error(t.message)
             }
 
             override fun onResponse(call: Call<RedditApi.ListingResponse?>, response: Response<RedditApi.ListingResponse?>) {
@@ -77,7 +87,7 @@ class mDbRedditPostRepository(
                         }
                     }
 
-                    refreshState.value=NetworkState.LOADED
+                    refreshStateMutable.value=NetworkState.LOADED
                 }
             }
         })
@@ -87,14 +97,14 @@ class mDbRedditPostRepository(
      * Returns a Listing for the given subreddit.
      */
     @MainThread
-     fun postsOfSubreddit(subReddit: String, pageSize: Int): LiveData<PagedList<RedditPost>> {
+     override fun postsOfSubreddit(subReddit: String, pageSize: Int) {
         val mSubredditBoundaryCallback=mSubredditBoundaryCallback(redditApi,subReddit,networkPageSize,db)
         val dataSourceFactory=db.posts().postsBySubreddit(subReddit)
         val pageListLiveData=LivePagedListBuilder(dataSourceFactory,networkPageSize)
                 .setBoundaryCallback(mSubredditBoundaryCallback)
                 .build()
+        postPageListLiveData.postValue(pageListLiveData)
         refreshStateLiveData.postValue(mSubredditBoundaryCallback.netWorkStatus)
-        return pageListLiveData
     }
 }
 
