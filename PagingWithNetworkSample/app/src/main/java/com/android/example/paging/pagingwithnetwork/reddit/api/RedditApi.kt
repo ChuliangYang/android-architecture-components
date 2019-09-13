@@ -77,6 +77,7 @@ interface RedditApi {
                     .baseUrl(httpUrl)
                     .client(client)
                     .addConverterFactory(GsonConverterFactory.create())
+                    .addCallAdapterFactory()
                     .build()
                     .create(RedditApi::class.java)
         }

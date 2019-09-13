@@ -13,9 +13,7 @@ abstract class PostDb:RoomDatabase(){
     abstract fun getRedditDao():RedditPostDao
 
     companion object{
-
         @Volatile var INSTANCE:PostDb?=null
-
         fun getInstance(context:Context):PostDb{
             if(INSTANCE==null){
                 synchronized(this){
